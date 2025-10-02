@@ -345,13 +345,13 @@
         </div>
     </div>
 
-    <div class="footer">Arrows/WASD to move · Space for 2x speed boost (costs 1 length, 1 sec duration) · Head-on into a
-        predator kills it (it respawns). Predators that touch your last 3 segments kill you.</div>
+    <!-- <div class="footer">Arrows/WASD to move · Space for 2x speed boost (costs 1 length, 1 sec duration) · Head-on into a
+        predator kills it (it respawns). Predators that touch your last 3 segments kill you.</div> -->
 
     <script>
         function toggleLegend() {
             const legend = document.querySelector('.legend');
-            const footer = document.querySelector('.footer');
+            // const footer = document.querySelector('.footer');
             const controls = document.querySelector('.controls');
             const hideLegendBtn = document.getElementById('HideLegendBtn');
 
@@ -359,12 +359,12 @@
 
             if (isHidden) {
                 legend.style.display = 'flex';
-                footer.style.display = 'block';
+                // footer.style.display = 'block';
                 // controls.style.display = 'flex';
                 hideLegendBtn.textContent = 'Hide Info';
             } else {
                 legend.style.display = 'none';
-                footer.style.display = 'none';
+                // footer.style.display = 'none';
                 // controls.style.display = 'none';
                 hideLegendBtn.textContent = 'Show Info';
             }
