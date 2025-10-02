@@ -49,7 +49,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid var(--border-primary);
             border-radius: 16px;
-            padding: 20px;
+            padding: 10px;
             box-shadow: 0 8px 32px var(--shadow-cool);
         }
 
@@ -162,8 +162,8 @@
             }
 
             .hud {
-                padding: 15px;
-                gap: 12px;
+                padding: 5px;
+                gap: 5px;
             }
 
             .meters-table {
@@ -243,10 +243,12 @@
 </head>
 
 <body>
-    <h1 style="text-align: center; font-family: 'MyCustomFont', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; font-size: 24px; color: var(--accent-sand); text-shadow: 0 0 5px var(--shadow-warm); margin: 0 0 10px 0;">
-        Super Snake — Trail of the Tail
-    </h1>
+
     <div class="hud">
+        <h1
+            style="text-align: center; font-family: 'MyCustomFont', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; font-size: 24px; color: var(--accent-sand); text-shadow: 0 0 5px var(--shadow-warm); margin: 0 0 10px 0;">
+            Super Snake — Trail of the Tail
+        </h1>
         <div class="meters-table">
             <div class="meters-row">
                 <div class="meters-cell">
@@ -264,8 +266,13 @@
             </div>
         </div>
 
+
+    </div>
+
+    <canvas id="game" style="margin: 0 auto;" width="532" height="532" aria-label="Snake desert"></canvas>
+
+    <div class="hud">
         <div class="legend">
-           <!-- <span class="chip">🐍 Snake</span> -->
             <span class="chip">🐭 Mice (food)</span>
             <span class="chip">🦊/🦅 Predators</span>
             <span class="chip">🪨 Rock </span>
@@ -274,24 +281,80 @@
             <span class="chip">🌵 Cactus</span>
             <span class="chip">🌿 Thorn bush</span>
         </div>
-
-        <div class="controls">
+        
+        <div class="controls" style="margin: 0 auto; display: block; gap: 12px;">
             <button id="restartBtn">Restart (R)</button>
             <button id="pauseBtn">Pause (P)</button>
         </div>
+
+        <div class="footer">
+            <div>
+                How to play:
+            </div>
+            <div>Arrows/WASD to move · Space for 2x speed boost (costs 1 length, 1 sec duration) · Head-on
+                into a predator kills it (it respawns). Predators that touch your last 3 segments kill you.
+            </div>
+        </div>
+
+
+        <div style="display: flex; gap: 10px;">
+            <button id="DonateBtn" onclick="donate(userId)"
+                style="width: 20%; margin: 0 auto; display: block; background: #51cf66;">Donate</button>
+            <button id="HideLegendBtn" onclick="toggleLegend()"
+                style="width: 20%; margin: 0 auto; display: block; background: #ff6b6b;">Hide
+                Info</button>
+        </div>
     </div>
 
-    <canvas id="game" style="margin: 0 auto;" width="532" height="532" aria-label="Snake desert"></canvas>
+    <script>
+        function toggleLegend() {
+            const legend = document.querySelector('.legend');
+            const footer = document.querySelector('.footer');
+            const controls = document.querySelector('.controls');
+            const hideLegendBtn = document.getElementById('HideLegendBtn');
 
-    <div class="footer">Arrows/WASD to move · Space for 2x speed boost (costs 1 length, 1 sec duration) · Head-on into a
-        predator kills it (it respawns). Predators that touch your last 3 segments kill you.</div>
+            const isHidden = legend.style.display === 'none';
 
+            if (isHidden) {
+                legend.style.display = 'flex';
+                footer.style.display = 'block';
+                controls.style.display = 'flex';
+                hideLegendBtn.textContent = 'Hide Info';
+            } else {
+                legend.style.display = 'none';
+                footer.style.display = 'none';
+                controls.style.display = 'none';
+                hideLegendBtn.textContent = 'Show Info';
+            }
+        }
+    </script>
 
     <script>
         const userId = "12345"; // Replace with actual user ID
     </script>
 
-    <button id="DonateBtn" onclick="donate(userId)" style="width: 50%; margin: 0 auto; display: block;">Donate</button>
+
+    <script>
+        // Show popup ad on game over
+        if (random() < 0.2) { // 20% chance to show ad
+            if (gameOver) {
+                document.getElementById('popupAd').style.display = 'block';
+            }
+        }
+    </script>
+    <!-- Todo create popup modal and ad container -->
+    <div id="ad-container">
+        <!-- Template popup ad -->
+        <div id="popupAd" style="display: none;">
+            <div>
+                <h2>Advertisement</h2>
+                <p>This is a sample ad. Your ad could be here!</p>
+                <button onclick="document.getElementById('popupAd').style.display='none'">Close</button>
+            </div>
+        </div>
+    </div>>
+
+    <!-- <button id="DonateBtn" onclick="donate(userId)" style="width: 50%; margin: 0 auto; display: block;">Donate</button> -->
     <!-- donate Modal -->
     <div id="donateModal" style="display: none;">
         <div>
