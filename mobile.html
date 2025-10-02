@@ -376,14 +376,6 @@
     </script>
 
 
-    <script>
-        // Show popup ad on game over
-        if (random() < 0.2) { // 20% chance to show ad
-            if (gameOver) {
-                document.getElementById('popupAd').style.display = 'block';
-            }
-        }
-    </script>
     <!-- Todo create popup modal and ad container -->
     <div id="ad-container">
         <!-- Template popup ad -->
@@ -395,7 +387,80 @@
             </div>
         </div>
     </div>
+    <script>
+        // Show popup ad on game over (20% chance)
+        function maybeShowAd() {
+            if (Math.random() < 0.2) {
+                document.getElementById('popupAd').style.display = 'block';
+            }
+        }
+    </script>
+    <script>
+        // Show popup ad if player loses 20% of their starting length
+        let initialSnakeLength = null;
+        let adShownForLoss = false;
 
+        // Hook into the game logic to detect length loss
+        // Wait until the game is initialized
+        (function observeSnakeLengthLoss() {
+            const checkInterval = setInterval(() => {
+                if (window.snake && Array.isArray(window.snake)) {
+                    initialSnakeLength = window.snake.length;
+                    clearInterval(checkInterval);
+
+                    // Patch the shrinkBy function to detect loss
+                    const originalShrinkBy = window.shrinkBy;
+                    window.shrinkBy = function(n) {
+                        originalShrinkBy.call(this, n);
+                        if (
+                            !adShownForLoss &&
+                            initialSnakeLength &&
+                            window.snake.length <= Math.floor(initialSnakeLength * 0.8)
+                        ) {
+                            showAdModal();
+                            adShownForLoss = true;
+                        }
+                    };
+                }
+            }, 100);
+        })();
+
+        function showAdModal() {
+            document.getElementById('popupAd').style.display = 'block';
+        }
+    </script>
+    <style>
+        #popupAd {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fffbe6;
+            border: 2px solid #d4b896;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 2000;
+            padding: 32px 24px 24px 24px;
+            min-width: 260px;
+            min-height: 120px;
+            text-align: center;
+        }
+        #popupAd h2 {
+            margin-top: 0;
+            color: #ff8c42;
+        }
+        #popupAd button {
+            margin-top: 16px;
+            background: #ff8c42;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+        }
+    </style>
 
     <!-- donate Modal -->
     <div id="donateModal" style="display: none;">
@@ -1214,6 +1279,7 @@
                 ctx.fillText(reason, canvas.width / 2, canvas.height / 2 + 4);
                 ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 24);
                 cancelAnimationFrame(rafId);
+                maybeShowAd();
                 alert(`Game Over: ${reason} Final score: ${score}, length: ${snake.length}, time: ${(elapsedMs / 1000).toFixed(1)}s`);
             }
 
