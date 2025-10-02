@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desert Snake — Tail Hunters</title>
+    <style>
+        :root {
+            --cell: 14px;
+            /* ~10–12pt visible text scale */
+            --grid: 51;
+            --canvas: calc(var(--cell) * var(--grid));
+            --hud-font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+
+            /* Desert-themed color palette */
+            --bg-primary: #000000;
+            --bg-secondary: rgba(139, 115, 85, 0.1);
+            --accent-sand: #d4b896;
+            --accent-orange: #ff8c42;
+            --accent-red: #ff6b6b;
+            --accent-green: #51cf66;
+            --text-primary: #f5f1e8;
+            --text-secondary: rgba(245, 241, 232, 0.8);
+            --border-primary: rgba(212, 184, 150, 0.3);
+            --shadow-warm: rgba(255, 140, 66, 0.2);
+            --shadow-cool: rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font: var(--hud-font);
+            display: grid;
+            gap: 20px;
+            justify-content: center;
+            align-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .hud {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-primary);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px var(--shadow-cool);
+        }
+
+        .meters-table {
+            display: table;
+            width: 100%;
+            border-spacing: 10px;
+        }
+
+        .meters-row {
+            display: table-row;
+        }
+
+        .meters-cell {
+            display: table-cell;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(212, 184, 150, 0.15) 0%, rgba(212, 184, 150, 0.05) 100%);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .meters-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-warm);
+        }
+
+        .meters-cell b {
+            color: var(--accent-orange);
+            font-weight: 700;
+            display: block;
+            font-size: 1.1em;
+            margin-top: 4px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            opacity: 0.9;
+        }
+
+        .legend .chip {
+            background: linear-gradient(135deg, rgba(81, 207, 102, 0.15) 0%, rgba(81, 207, 102, 0.05) 100%);
+            border: 1px solid rgba(81, 207, 102, 0.3);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .legend .chip:hover {
+            transform: scale(1.05);
+            background: linear-gradient(135deg, rgba(81, 207, 102, 0.25) 0%, rgba(81, 207, 102, 0.15) 100%);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-orange) 0%, #e67829 100%);
+            color: var(--text-primary);
+            border: 1px solid rgba(255, 140, 66, 0.5);
+            border-radius: 12px;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 140, 66, 0.4);
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        canvas {
+            width: var(--canvas);
+            height: var(--canvas);
+            image-rendering: pixelated;
+            background: #2d1810;
+            border-radius: 5px;
+            box-shadow: 0 0 0 1px #333 inset, 0 8px 24px rgba(0, 0, 0, .5);
+        }
+
+        .footer {
+            opacity: .7;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+                gap: 15px;
+            }
+
+            .hud {
+                padding: 15px;
+                gap: 12px;
+            }
+
+            .meters-table {
+                border-spacing: 5px;
+            }
+
+            .meters-cell {
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+
+            .legend {
+                gap: 6px;
+            }
+
+            .legend .chip {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .controls {
+                gap: 8px;
+            }
+
+            button {
+                padding: 8px 16px;
+                font-size: 0.9em;
+            }
+
+            canvas {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .meters-table {
+                border-spacing: 3px;
+            }
+
+            .meters-cell {
+                padding: 6px 8px;
+                font-size: 0.8em;
+            }
+
+            .legend {
+                gap: 4px;
+            }
+
+            .legend .chip {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+
+            .controls {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            button {
+                padding: 10px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+
+    <script>
+        // Load custom font
+        const myFont = new FontFace('MyCustomFont', 'url(./fragile-bombers-regular.otf)');
+        myFont.load().then(function (loadedFont) {
+            document.fonts.add(loadedFont);
+            console.log('Custom font loaded');
+        }).catch(function (error) {
+            console.error('Failed to load custom font:', error);
+        });
+    </script>
+</head>
+
+<body>
+    <h1 style="text-align: center; font-family: 'MyCustomFont', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; font-size: 24px; color: var(--accent-sand); text-shadow: 0 0 5px var(--shadow-warm); margin: 0 0 10px 0;">
+        Super Snake — Trail of the Tail
+    </h1>
+    <div class="hud">
+        <div class="meters-table">
+            <div class="meters-row">
+                <div class="meters-cell">
+                    Score<br><b id="score">0</b>
+                </div>
+                <div class="meters-cell">
+                    Length<br><b id="length">10</b>
+                </div>
+                <div class="meters-cell">
+                    Time<br><b id="time">0.0s</b>
+                </div>
+                <div class="meters-cell">
+                    Speed<br><b id="speed">1.0x</b>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <span class="chip">🐍 Snake</span>
+            <span class="chip">🐭 Mice (food)</span>
+            <span class="chip">🦊/🦅 Predators</span>
+            <span class="chip">🪨 Rock (stationary)</span>
+            <span class="chip">⬛ Tar wall (stationary)</span>
+            <span class="chip">💧 Water (stationary)</span>
+            <span class="chip">🌵 Cactus</span>
+            <span class="chip">🌿 Thorn bush</span>
+        </div>
+
+        <div class="controls">
+            <button id="restartBtn">Restart (R)</button>
+            <button id="pauseBtn">Pause (P)</button>
+        </div>
+    </div>
+
+    <canvas id="game" style="margin: 0 auto;" width="532" height="532" aria-label="Snake desert"></canvas>
+
+    <div class="footer">Arrows/WASD to move · Space for 2x speed boost (costs 1 length, 1 sec duration) · Head-on into a
+        predator kills it (it respawns). Predators that touch your last 3 segments kill you.</div>
+
+
+    <script>
+        const userId = "12345"; // Replace with actual user ID
+    </script>
+
+    <button id="DonateBtn" onclick="donate(userId)" style="width: 50%; margin: 0 auto; display: block;">Donate</button>
+    <!-- donate Modal -->
+    <div id="donateModal" style="display: none;">
+        <div>
+            <h2>Donate</h2>
+            <p>Your donation helps us keep the game running!</p>
+            <input type="text" id="donationAmount" placeholder="Enter donation amount" inputmode="numeric"
+                maxlength="4">
+            <button onclick="confirmDonation()">Confirm Donation</button>
+            <button onclick="cancelDonation()">Cancel</button>
+        </div>
+    </div>
+
+    <style>
+        #donateModal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid #ccc;
+            z-index: 1000;
+            border: #d4b896 solid 2px;
+            border-radius: 12px;
+        }
+    </style>
+
+    <script>
+        function donate() {
+
+
+            // check localStorage for donation status
+            let DN8_UserData = JSON.parse(localStorage.getItem("DN8_userdata")) || {};
+            if (DN8_UserData === null) {
+                // open link in new tab
+                // window.open("https://www.DN8.com", "_blank");
+                window.open("http://localhost:3000/login", "_blank");
+                alert("Please log in new tab to donate.");
+                return;
+            }
+            // check if token is not older than 3 hours
+            if (DN8_UserData.token) {
+                const tokenAge = Date.now() - DN8_UserData.token.timestamp;
+                if (tokenAge < 3 * 60 * 60 * 1000) {
+
+                    fetch(`http://localhost:3000/donate/${userId}`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${DN8_UserData.token.value}`
+                        },
+                        body: JSON.stringify({
+                            amount: document.getElementById("donationAmount").value,
+                            currentUser: DN8_UserData.username,
+                            currentUserID: DN8_UserData.userId
+                        })
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                alert("Thank you for your donation!");
+                            } else {
+                                alert("Donation failed.");
+                            }
+                        });
+                    return;
+                } else {
+                    // token expired, open link in new tab
+                    window.open("http://localhost:3000/login", "_blank");
+                    return;
+                }
+                // token expired, open link in new tab
+                window.open("http://localhost:3000/login", "_blank");
+                return;
+            } else {
+                // no token found, open link in new tab
+                // window.open("https://www.DN8.com", "_blank");
+                window.open("http://localhost:3000/login", "_blank");
+            }
+        }
+
+        function confirmDonation() {
+            const amount = document.getElementById("donationAmount").value;
+            if (amount && !isNaN(amount) && amount > 0) {
+                // process donation
+                donate();
+                document.getElementById("donateModal").style.display = "none";
+            } else {
+                alert("Please enter a valid donation amount.");
+            }
+        }
+
+        function cancelDonation() {
+            document.getElementById("donateModal").style.display = "none";
+        }
+    </script>
+
+    <script>
+        (() => {
+
+            // ====== Tunables & constants ======
+            const GRID = 38;
+            const CELL = 14;                 // pixels per cell; draw text around 10–12 pt equivalent
+            const BASE_TICK_MS = 125;        // base snake step (fast enough for large grid)
+            const WATER_SLOW_FACTOR = 2;     // snake acts every N ticks in water
+            const TAR_SLOW_FACTOR = 4;       // snake acts every N ticks in tar
+            const SHRINK_INTERVAL = 5000;    // ms: lose 1 unit if no food eaten in this window
+            const MIN_ALIVE_LEN = 3;         // die below this
+            const START_LEN = 10;
+
+            const MAX_MICE = 5;
+            let MOUSE_MOVE_EVERY = 4;      // mice move every N ticks
+
+            const MAX_CACTUS = 5;
+            const MAX_BUSH = 5;
+
+            const INITIAL_ROCKS = 15;
+            const TAR_PATCHES = 6;           // Number of tar patches
+            const TAR_MAX_SIZE = 10;         // Maximum tar patch size
+            const TAR_MIN_SIZE = 5;          // Minimum tar patch size
+
+            const WATER_PATCHES = 10;
+            const WATER_MAX_SIZE = 10;
+            const WATER_MIN_SIZE = 5;
+
+            const PREDATORS = [
+                { kind: 'fox', icon: '🦊' },
+                { kind: 'eagle', icon: '🦅' },
+            ];
+            let PREDATOR_SPEED_TICKS = 1;      // they can move every tick
+            const PREDATOR_CHASE_RANGE = 7;      // euclidean distance to trigger chase
+            const PREDATOR_CHASE_TIME = 5000;    // ms duration of chase
+            const PREDATOR_CHASE_COOLDOWN = 5000; // ms cooldown before next chase
+            const PREDATOR_TURN_MIN_MS = 1000;   // minimum time before turning
+            const PREDATOR_TURN_MAX_MS = 3000;   // maximum time before turning
+            const PREDATOR_CHASE_TURN_MS = 500; // can turn every .500s during chase
+
+            // ====== Drawing helpers ======
+            const canvas = document.getElementById('game');
+            const ctx = canvas.getContext('2d');
+            ctx.font = "12px system-ui, Apple Color Emoji, Segoe UI Emoji";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+
+            function cellToPx(v) { return v * CELL + CELL / 2; } // center of cell
+            function drawGridBG() {
+                // subtle grid
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#2d1810"; // Brown background
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = "#4a2f1a"; // Brown grid lines
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i <= GRID; i++) {
+                    const p = i * CELL;
+                    ctx.moveTo(0, p); ctx.lineTo(GRID * CELL, p);
+                    ctx.moveTo(p, 0); ctx.lineTo(p, GRID * CELL);
+                }
+                ctx.stroke();
+            }
+
+            function inBounds(x, y) { return x >= 0 && x < GRID && y >= 0 && y < GRID; }
+
+            // ====== Game state ======
+            let snake, dir, nextDir, tickCount, playing, lastTickTime, startTime, elapsedMs, lastAteMs;
+            let score, rocks, tar, water, cactus, bushes, mice, predators;
+            let speedBoostUntil = 0; // timestamp when speed boost ends
+            let lastSnakeMoveTime = 0; // separate timer for snake movement
+            let paused = false;
+
+            function rndInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+            function randFreeCell(avoidSet) {
+                for (let tries = 0; tries < 5000; tries++) {
+                    const x = rndInt(0, GRID - 1), y = rndInt(0, GRID - 1);
+                    const k = `${x},${y}`;
+                    if (!avoidSet.has(k)) return { x, y };
+                }
+                return null;
+            }
+            function key(x, y) { return `${x},${y}`; }
+
+            function buildAvoidSet() {
+                const S = new Set();
+                snake.forEach(p => S.add(key(p.x, p.y)));
+                for (const r of rocks) S.add(key(r.x, r.y));
+                for (const w of tar) S.add(key(w.x, w.y));
+                for (const w of water) S.add(key(w.x, w.y));
+                for (const c of cactus) S.add(key(c.x, c.y));
+                for (const b of bushes) S.add(key(b.x, b.y));
+                for (const m of mice) S.add(key(m.x, m.y));
+                for (const p of predators) S.add(key(p.x, p.y));
+                return S;
+            }
+
+            function init() {
+                score = 0;
+                tickCount = 0;
+                playing = true;
+                elapsedMs = 0;
+                lastAteMs = 0;
+                speedBoostUntil = 0;
+                lastSnakeMoveTime = 0;
+
+                // Snake start at center, horizontal to the right
+                const cx = Math.floor(GRID / 2), cy = Math.floor(GRID / 2);
+                snake = [];
+                for (let i = 0; i < START_LEN; i++) snake.push({ x: cx - i, y: cy });
+                dir = { x: 1, y: 0 };
+                nextDir = { x: 1, y: 0 };
+
+                // Terrain & hazards
+                rocks = [];
+                tar = [];
+                water = [];
+                cactus = [];
+                bushes = [];
+                mice = [];
+                predators = [];
+
+                // Water puddles
+                placeWaterPatches(WATER_PATCHES, WATER_MAX_SIZE, WATER_MIN_SIZE);
+
+                // Tar patches
+                placeTarPatches(TAR_PATCHES, TAR_MAX_SIZE, TAR_MIN_SIZE);
+
+                // Random rocks (avoid snake, water, and tar)
+                let occupied = new Set(snake.map(p => key(p.x, p.y)));
+                for (const w of water) occupied.add(key(w.x, w.y));
+                for (const t of tar) occupied.add(key(t.x, t.y));
+
+                addRandomCells(rocks, INITIAL_ROCKS, occupied);
+
+                // Cactus & bushes (limit 5 each)
+                addRandomCells(cactus, MAX_CACTUS, occupied);
+                addRandomCells(bushes, MAX_BUSH, occupied);
+
+                // Mice up to MAX_MICE
+                for (let i = 0; i < MAX_MICE; i++) {
+                    const spot = randFreeCell(occupied);
+                    if (spot) { mice.push({ ...spot, moveLag: 0 }); occupied.add(key(spot.x, spot.y)); }
+                }
+
+                // Predators 2
+                for (const spec of PREDATORS) {
+                    const spot = randFreeCell(occupied);
+                    if (spot) {
+                        const now = performance.now();
+                        // Random initial direction
+                        const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                        const initialDir = dirs[rndInt(0, dirs.length - 1)];
+
+                        predators.push({
+                            ...spot,
+                            icon: spec.icon,
+                            chaseUntil: 0,
+                            chaseCooldownUntil: 0,
+                            direction: initialDir,
+                            nextTurnTime: now + rndInt(PREDATOR_TURN_MIN_MS, PREDATOR_TURN_MAX_MS),
+                            lastTurnTime: now,
+                        });
+                        occupied.add(key(spot.x, spot.y));
+                    }
+                }
+
+                drawGridBG();
+                startTime = performance.now();
+                lastTickTime = startTime;
+                lastSnakeMoveTime = startTime;
+                updateHUD();
+            }
+
+            function addRandomCells(arr, count, occupied) {
+                let placed = 0;
+                while (placed < count) {
+                    const spot = randFreeCell(occupied);
+                    if (!spot) break;
+                    arr.push(spot);
+                    occupied.add(key(spot.x, spot.y));
+                    placed++;
+                }
+            }
+
+            function placeWaterPatches(patches, maxSize, minSize) {
+                const taken = new Set();
+                for (let p = 0; p < patches; p++) {
+                    const seed = randFreeCell(taken);
+                    if (!seed) break;
+                    const cluster = [seed];
+                    taken.add(key(seed.x, seed.y));
+                    const size = rndInt(minSize, maxSize);
+                    while (cluster.length < size) {
+                        const from = cluster[rndInt(0, cluster.length - 1)];
+                        const nbs = shuffle([
+                            { x: from.x + 1, y: from.y },
+                            { x: from.x - 1, y: from.y },
+                            { x: from.x, y: from.y + 1 },
+                            { x: from.x, y: from.y - 1 },
+                        ]);
+                        let placed = false;
+                        for (const nb of nbs) {
+                            if (inBounds(nb.x, nb.y) && !taken.has(key(nb.x, nb.y))) {
+                                cluster.push(nb);
+                                taken.add(key(nb.x, nb.y));
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (!placed) break;
+                    }
+                    water.push(...cluster);
+                }
+            }
+
+            function placeTarPatches(patches, maxSize, minSize) {
+                const taken = new Set();
+                // Avoid existing water and snake positions
+                for (const w of water) taken.add(key(w.x, w.y));
+                for (const s of snake) taken.add(key(s.x, s.y));
+
+                for (let p = 0; p < patches; p++) {
+                    const seed = randFreeCell(taken);
+                    if (!seed) break;
+                    const cluster = [seed];
+                    taken.add(key(seed.x, seed.y));
+                    const size = rndInt(minSize, maxSize);
+                    while (cluster.length < size) {
+                        const from = cluster[rndInt(0, cluster.length - 1)];
+                        const nbs = shuffle([
+                            { x: from.x + 1, y: from.y },
+                            { x: from.x - 1, y: from.y },
+                            { x: from.x, y: from.y + 1 },
+                            { x: from.x, y: from.y - 1 },
+                        ]);
+                        let placed = false;
+                        for (const nb of nbs) {
+                            if (inBounds(nb.x, nb.y) && !taken.has(key(nb.x, nb.y))) {
+                                cluster.push(nb);
+                                taken.add(key(nb.x, nb.y));
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (!placed) break;
+                    }
+                    tar.push(...cluster);
+                }
+            }
+
+            function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+            // ====== Game loop ======
+            let rafId;
+            function loop(now) {
+                if (!playing) return;
+                if (paused) {
+                    rafId = requestAnimationFrame(loop);
+                    return;
+                }
+
+                const dt = now - lastTickTime;
+                elapsedMs = now - startTime;
+
+                // Normal game tick for mice, predators, etc.
+                if (dt >= BASE_TICK_MS) {
+                    lastTickTime = now;
+                    tick();
+                }
+
+                draw();
+                rafId = requestAnimationFrame(loop);
+            }
+
+            function tick() {
+                tickCount++;
+
+                // Apply shrinking every SHRINK_INTERVAL without food
+                if (elapsedMs - lastAteMs >= SHRINK_INTERVAL) {
+                    shrinkBy(1);
+                    lastAteMs = elapsedMs; // reset window after shrink tick
+                }
+
+                // Move mice slower
+                if (tickCount % MOUSE_MOVE_EVERY === 0) moveMice();
+
+                // Move predators
+                if (tickCount % PREDATOR_SPEED_TICKS === 0) movePredators();
+
+                // Move snake with its own timing (separate from game tick)
+                const now = performance.now();
+                const head = snake[0];
+                const onWater = water.some(w => w.x === head.x && w.y === head.y);
+                const onTar = tar.some(t => t.x === head.x && t.y === head.y);
+                const isBoosted = now <= speedBoostUntil;
+
+                let snakeSpeed = BASE_TICK_MS;
+                if (onWater) snakeSpeed *= WATER_SLOW_FACTOR; // Water slows down
+                if (onTar) snakeSpeed *= TAR_SLOW_FACTOR; // Tar slows down
+                if (isBoosted) snakeSpeed *= 0.5; // Speed boost = half delay = 2x speed
+                // move predators every PREDATOR_SPEED_TICKS ticks
+                if (isBoosted) PREDATOR_SPEED_TICKS = 4; // predators move slower when boosted
+                else PREDATOR_SPEED_TICKS = 1;
+                // move mice slower when boosted
+                if (isBoosted) MOUSE_MOVE_EVERY = 8;
+                else MOUSE_MOVE_EVERY = 4;
+
+                if (now - lastSnakeMoveTime >= snakeSpeed) {
+                    moveSnake();
+                    lastSnakeMoveTime = now;
+                }
+
+                // Respawn if needed
+                maintainCounts();
+                updateHUD();
+            }
+
+            function shrinkBy(n) {
+                for (let i = 0; i < n; i++) {
+                    if (snake.length > 0) snake.pop();
+                }
+                if (snake.length < MIN_ALIVE_LEN) gameOver("Starved (too short).");
+            }
+
+            function updateHUD() {
+                document.getElementById('score').textContent = score;
+                document.getElementById('length').textContent = snake.length;
+                document.getElementById('time').textContent = (elapsedMs / 1000).toFixed(1) + "s";
+                const head = snake[0];
+                const onWater = water.some(w => w.x === head.x && w.y === head.y);
+                const isBoosted = performance.now() <= speedBoostUntil;
+
+                let speedText = "1.0x";
+                if (onWater && isBoosted) speedText = "1.0x"; // water slow cancels boost
+                else if (onWater) speedText = "0.5x";
+                else if (isBoosted) speedText = "2.0x⚡";
+
+                document.getElementById('speed').textContent = speedText;
+            }
+
+            // ====== Movement & interactions ======
+            function moveSnake() {
+                // prevent instant reverse
+                if ((nextDir.x !== -dir.x || nextDir.y !== -dir.y) && !(snake.length > 1 && nextDir.x === -dir.x && nextDir.y === -dir.y)) {
+                    dir = nextDir;
+                }
+
+                const nx = snake[0].x + dir.x;
+                const ny = snake[0].y + dir.y;
+
+                // Out of bounds => death
+                if (!inBounds(nx, ny)) { gameOver("Hit boundary."); return; }
+
+                // Self collision => death
+                if (snake.some((s, i) => i > 0 && s.x === nx && s.y === ny)) { gameOver("Hit yourself."); return; }
+
+                // Collisions with rocks/tar walls => death
+                if (rocks.some(r => r.x === nx && r.y === ny)) {
+                    gameOver("Smashed into rocks/wall.");
+                    return;
+                }
+
+                // Predators:
+                let hitPredIdx = predators.findIndex(p => p.x === nx && p.y === ny);
+                if (hitPredIdx >= 0) {
+                    // Head touches predator => predator dies and respawns elsewhere
+                    predatorRespawn(hitPredIdx);
+                    // proceed, growth
+
+                    score += 50;
+                    lastAteMs = elapsedMs;
+                    // snake.length += 5;  
+                    const newLen = snake.length + 5;
+                    for (let i = snake.length; i < newLen; i++) {
+                        snake.push({ ...snake[snake.length - 1] }); // add new segments at tail
+                    }
+                    //   let cactusIdx = cactus.findIndex(c=>c.x===nx&&c.y
+                    //   if (snake.length < MIN_ALIVE_LEN) { gameOver("Shredded by thorns."); return; }
+                    //   if (cactusIdx>=0) cactus.splice(cactusIdx,1);
+                    //   if (bushIdx>=0) bushes.splice(bushIdx,1);
+                    //   chopped = true;
+                    return;
+                }
+
+                // Head hits cactus/bush => lose half length, remove hazard
+                let cactusIdx = cactus.findIndex(c => c.x === nx && c.y === ny);
+                let bushIdx = bushes.findIndex(b => b.x === nx && b.y === ny);
+                let chopped = false;
+                if (cactusIdx >= 0 || bushIdx >= 0) {
+                    const newLen = Math.max(0, Math.floor(snake.length / 2));
+                    while (snake.length > newLen) snake.pop();
+                    if (snake.length < MIN_ALIVE_LEN) { gameOver("Shredded by thorns."); return; }
+                    if (cactusIdx >= 0) cactus.splice(cactusIdx, 1);
+                    if (bushIdx >= 0) bushes.splice(bushIdx, 1);
+                    chopped = true;
+                }
+
+                // Move head
+                snake.unshift({ x: nx, y: ny });
+
+                // Food (mice)
+                let ate = false;
+                const mi = mice.findIndex(m => m.x === nx && m.y === ny);
+                if (mi >= 0) {
+                    mice.splice(mi, 1);
+                    score += 10;
+                    lastAteMs = elapsedMs;
+                    ate = true;
+                }
+                const pred = predators.findIndex(p => p.x === nx && p.y === ny);
+                if (pred >= 0) {
+                    predators.splice(pred, 1);
+                    score += 50;
+                    lastAteMs = elapsedMs;
+                    ate = true;
+                }
+
+                // Predators kill if they touch last 3 tail segments
+                const lastThree = new Set(snake.slice(-3).map(s => key(s.x, s.y)));
+                const predatorOnTail = predators.some(p => lastThree.has(key(p.x, p.y)));
+                if (predatorOnTail) { gameOver("Predator bit your tail."); return; }
+
+                // If we didn't eat, drop tail
+                if (!ate) snake.pop();
+            }
+
+            function moveMice() {
+                // Mice pick a random valid neighboring free cell; they avoid obstacles if possible
+                const occ = buildOccupancyMap();
+                for (const m of mice) {
+                    const options = shuffle([
+                        { x: m.x + 1, y: m.y }, { x: m.x - 1, y: m.y }, { x: m.x, y: m.y + 1 }, { x: m.x, y: m.y - 1 },
+                        { x: m.x, y: m.y } // staying put is allowed
+                    ]);
+                    for (const o of options) {
+                        if (!inBounds(o.x, o.y)) continue;
+                        const k = key(o.x, o.y);
+                        if (!occ.has(k)) { m.x = o.x; m.y = o.y; break; }
+                    }
+                }
+            }
+
+            function buildOccupancyMap(excludeTypes = []) {
+                const S = new Set();
+                if (!excludeTypes.includes('snake')) snake.forEach(p => S.add(key(p.x, p.y)));
+                if (!excludeTypes.includes('rocks')) for (const r of rocks) S.add(key(r.x, r.y));
+                if (!excludeTypes.includes('tar')) for (const w of tar) S.add(key(w.x, w.y));
+                if (!excludeTypes.includes('water')) for (const w of water) S.add(key(w.x, w.y));
+                if (!excludeTypes.includes('cactus')) for (const c of cactus) S.add(key(c.x, c.y));
+                if (!excludeTypes.includes('bushes')) for (const b of bushes) S.add(key(b.x, b.y));
+                if (!excludeTypes.includes('mice')) for (const m of mice) S.add(key(m.x, m.y));
+                if (!excludeTypes.includes('pred')) for (const p of predators) S.add(key(p.x, p.y));
+                return S;
+            }
+
+            function predatorRespawn(idx) {
+
+                const occ = buildOccupancyMap();
+                const spot = randFreeCell(occ);
+                if (spot) {
+                    const now = performance.now();
+                    const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                    const initialDir = dirs[rndInt(0, dirs.length - 1)];
+
+                    predators[idx].x = spot.x;
+                    predators[idx].y = spot.y;
+                    predators[idx].chaseUntil = 0;
+                    predators[idx].chaseCooldownUntil = 0;
+                    predators[idx].direction = initialDir;
+                    predators[idx].nextTurnTime = now + rndInt(PREDATOR_TURN_MIN_MS, PREDATOR_TURN_MAX_MS);
+                    predators[idx].lastTurnTime = now;
+                }
+            }
+
+            function movePredators() {
+                const now = performance.now();
+
+                // Get the 3rd-to-last segment of the snake for chase targeting
+                const chaseTarget = snake.length >= 3 ? snake[snake.length - 3] : snake[snake.length - 1];
+
+                const occ = buildOccupancyMap(/*exclude*/['pred']);
+
+                for (const p of predators) {
+                    // Eat mice on contact
+                    const mi = mice.findIndex(m => m.x === p.x && m.y === p.y);
+                    if (mi >= 0) { mice.splice(mi, 1); }
+
+                    // Check for chase trigger using euclidean distance
+                    const euclideanDist = Math.sqrt((p.x - chaseTarget.x) ** 2 + (p.y - chaseTarget.y) ** 2);
+                    const isInChaseRange = euclideanDist <= PREDATOR_CHASE_RANGE;
+                    const canStartChase = now >= p.chaseCooldownUntil;
+                    const isCurrentlyChasing = now <= p.chaseUntil;
+
+                    // Start chase if conditions are met
+                    if (isInChaseRange && canStartChase && !isCurrentlyChasing) {
+                        p.chaseUntil = now + PREDATOR_CHASE_TIME;
+                        p.lastTurnTime = now; // Reset turn time when starting chase
+                    }
+
+                    // End chase and start cooldown if chase time is up
+                    if (isCurrentlyChasing && now > p.chaseUntil) {
+                        p.chaseCooldownUntil = now + PREDATOR_CHASE_COOLDOWN;
+                        p.nextTurnTime = now + rndInt(PREDATOR_TURN_MIN_MS, PREDATOR_TURN_MAX_MS);
+                    }
+
+                    let newDirection = p.direction;
+
+                    if (isCurrentlyChasing) {
+                        // Chase mode: can turn every 1 second towards target
+                        if (now - p.lastTurnTime >= PREDATOR_CHASE_TURN_MS) {
+                            const dx = chaseTarget.x - p.x;
+                            const dy = chaseTarget.y - p.y;
+
+                            // Choose direction based on which axis has greater distance
+                            if (Math.abs(dx) > Math.abs(dy)) {
+                                newDirection = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 };
+                            } else if (Math.abs(dy) > 0) {
+                                newDirection = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 };
+                            }
+
+                            p.direction = newDirection;
+                            p.lastTurnTime = now;
+                        }
+                    } else {
+                        // Normal mode: move in straight lines, turn every 1-3 seconds
+                        if (now >= p.nextTurnTime) {
+                            // Time to change direction
+                            const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                            // Avoid immediate reversal
+                            const availableDirs = dirs.filter(d => !(d.x === -p.direction.x && d.y === -p.direction.y));
+                            newDirection = availableDirs[rndInt(0, availableDirs.length - 1)];
+
+                            p.direction = newDirection;
+                            p.nextTurnTime = now + rndInt(PREDATOR_TURN_MIN_MS, PREDATOR_TURN_MAX_MS);
+                            p.lastTurnTime = now;
+                        }
+                    }
+
+                    // Move in current direction
+                    const nx = p.x + p.direction.x;
+                    const ny = p.y + p.direction.y;
+                    const k = key(nx, ny);
+
+                    // During chase, allow moving onto snake segments; otherwise use normal occupancy check
+                    let canMove = inBounds(nx, ny);
+                    if (canMove) {
+                        if (isCurrentlyChasing) {
+                            // During chase, only avoid solid obstacles (rocks, tar, water, cactus, bushes, other predators)
+                            const snakeSet = new Set(snake.map(s => key(s.x, s.y)));
+                            canMove = !occ.has(k) || snakeSet.has(k); // Allow snake segments during chase
+                        } else {
+                            // Normal movement - avoid all occupied cells
+                            canMove = !occ.has(k);
+                        }
+                    }
+
+                    if (canMove) {
+                        p.x = nx;
+                        p.y = ny;
+                    } else {
+                        // Hit obstacle or boundary, change direction immediately
+                        const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+                        const availableDirs = dirs.filter(d => {
+                            const testX = p.x + d.x;
+                            const testY = p.y + d.y;
+                            if (!inBounds(testX, testY)) return false;
+
+                            const testK = key(testX, testY);
+                            if (isCurrentlyChasing) {
+                                // During chase, allow snake segments
+                                const snakeSet = new Set(snake.map(s => key(s.x, s.y)));
+                                return !occ.has(testK) || snakeSet.has(testK);
+                            } else {
+                                // Normal movement
+                                return !occ.has(testK);
+                            }
+                        });
+
+                        if (availableDirs.length > 0) {
+                            p.direction = availableDirs[rndInt(0, availableDirs.length - 1)];
+                            const newX = p.x + p.direction.x;
+                            const newY = p.y + p.direction.y;
+                            const newK = key(newX, newY);
+
+                            let canMoveNew = inBounds(newX, newY);
+                            if (canMoveNew) {
+                                if (isCurrentlyChasing) {
+                                    const snakeSet = new Set(snake.map(s => key(s.x, s.y)));
+                                    canMoveNew = !occ.has(newK) || snakeSet.has(newK);
+                                } else {
+                                    canMoveNew = !occ.has(newK);
+                                }
+                            }
+
+                            if (canMoveNew) {
+                                p.x = newX;
+                                p.y = newY;
+                            }
+                        }
+                        // Reset turn timer after hitting obstacle
+                        p.nextTurnTime = now + rndInt(PREDATOR_TURN_MIN_MS, PREDATOR_TURN_MAX_MS);
+                        p.lastTurnTime = now;
+                    }
+
+                    // If they moved onto a mouse, eat it
+                    const mi2 = mice.findIndex(m => m.x === p.x && m.y === p.y);
+                    if (mi2 >= 0) mice.splice(mi2, 1);
+                }
+            }
+
+            function maintainCounts() {
+                // Maintain mice up to MAX_MICE
+                while (mice.length < MAX_MICE) {
+                    const occ = buildOccupancyMap();
+                    const spot = randFreeCell(occ);
+                    if (!spot) break;
+                    mice.push({ ...spot, moveLag: 0 });
+                }
+                // Maintain cactus & bushes replacement
+                while (cactus.length < MAX_CACTUS) {
+                    const occ = buildOccupancyMap();
+                    const spot = randFreeCell(occ);
+                    if (!spot) break;
+                    cactus.push(spot);
+                }
+                while (bushes.length < MAX_BUSH) {
+                    const occ = buildOccupancyMap();
+                    const spot = randFreeCell(occ);
+                    if (!spot) break;
+                    bushes.push(spot);
+                }
+            }
+
+            // ====== Rendering ======
+            function draw() {
+                drawGridBG();
+
+                // Water
+                for (const w of water) {
+                    ctx.fillStyle = "#0a2a4a";
+                    ctx.fillRect(w.x * CELL, w.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#69aefc";
+                    //   ctx.fillText("💧", cellToPx(w.x), cellToPx(w.y));
+                }
+
+                // Tar walls (⬛) and rocks (🪨)
+                for (const t of tar) {
+                    ctx.fillStyle = "#0c0c0c";
+                    ctx.fillRect(t.x * CELL, t.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#111"; // darker base
+                    ctx.fillRect(t.x * CELL + 1, t.y * CELL + 1, CELL - 2, CELL - 2);
+                    ctx.fillStyle = "#222";
+                    //   ctx.fillText("⬛", cellToPx(t.x), cellToPx(t.y));
+                }
+                for (const r of rocks) {
+                    ctx.fillStyle = "#2b2b2b";
+                    ctx.fillRect(r.x * CELL, r.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#9aa0a6"; // grey
+                    ctx.fillText("🪨", cellToPx(r.x), cellToPx(r.y));
+                }
+
+                // Vegetation
+                ctx.fillStyle = "#2a382a";
+                for (const c of cactus) {
+                    ctx.fillRect(c.x * CELL, c.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#9cff9c";
+                    ctx.fillText("🌵", cellToPx(c.x), cellToPx(c.y));
+                    ctx.fillStyle = "#2a382a";
+                }
+                for (const b of bushes) {
+                    ctx.fillRect(b.x * CELL, b.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#b6ffb6";
+                    ctx.fillText("🌿", cellToPx(b.x), cellToPx(b.y));
+                    ctx.fillStyle = "#2a382a";
+                }
+
+                // Mice
+                for (const m of mice) {
+                    ctx.fillStyle = "#1d1d1d";
+                    ctx.fillRect(m.x * CELL, m.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#ddd";
+                    ctx.fillText("🐭", cellToPx(m.x), cellToPx(m.y));
+                }
+
+                // Predators
+                for (const p of predators) {
+                    ctx.fillStyle = "#1a1210";
+                    ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
+                    ctx.fillStyle = "#fff";
+                    ctx.fillText(p.icon, cellToPx(p.x), cellToPx(p.y));
+                }
+
+                // Snake
+                for (let i = snake.length - 1; i >= 0; i--) {
+                    const s = snake[i];
+                    const t = i === 0 ? "#39ff14" : i >= snake.length - 3 ? "#ff5151" : "#66ff66"; // head/tail coloring
+                    ctx.fillStyle = t;
+                    ctx.fillRect(s.x * CELL + 2, s.y * CELL + 2, CELL - 4, CELL - 4);
+                    if (i === 0) {
+                        ctx.fillStyle = "#0c0c0c";
+                        ctx.fillText("🐍", cellToPx(s.x), cellToPx(s.y));
+                    }
+                }
+            }
+
+            // ====== Game over / pause / restart ======
+            function gameOver(reason) {
+                playing = false;
+                draw();
+                ctx.fillStyle = "rgba(0,0,0,.6)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#fff";
+                ctx.font = "20px system-ui, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText("Game Over", canvas.width / 2, canvas.height / 2 - 20);
+                ctx.font = "14px system-ui, sans-serif";
+                ctx.fillText(reason, canvas.width / 2, canvas.height / 2 + 4);
+                ctx.fillText("Press R to restart", canvas.width / 2, canvas.height / 2 + 24);
+                cancelAnimationFrame(rafId);
+                alert(`Game Over: ${reason} Final score: ${score}, length: ${snake.length}, time: ${(elapsedMs / 1000).toFixed(1)}s`);
+            }
+
+            function restart() {
+                cancelAnimationFrame(rafId);
+                paused = false;
+                init();
+                rafId = requestAnimationFrame(loop);
+            }
+
+            function setPaused(p) {
+                paused = p;
+                document.getElementById('pauseBtn').textContent = paused ? "Resume (P)" : "Pause (P)";
+            }
+
+            // ====== Input ======
+            window.addEventListener('keydown', (e) => {
+                if (!playing) {
+                    if (e.key === 'r' || e.key === 'R') restart();
+                    return;
+                }
+                if (e.key === 'p' || e.key === 'P') { setPaused(!paused); return; }
+                if (e.key === 'r' || e.key === 'R') { restart(); return; }
+
+                // Space bar for speed boost
+                if (e.key === ' ') {
+                    const now = performance.now();
+                    // Can only boost if not already boosted and snake has more than minimum length
+                    if (now > speedBoostUntil && snake.length > MIN_ALIVE_LEN) {
+                        speedBoostUntil = now + 3000; // 2 second boost
+                        snake.pop(); // Remove 1 unit of length
+                    }
+                    return;
+                }
+
+                const map = {
+                    ArrowUp: { x: 0, y: -1 }, ArrowDown: { x: 0, y: 1 }, ArrowLeft: { x: -1, y: 0 }, ArrowRight: { x: 1, y: 0 },
+                    w: { x: 0, y: -1 }, s: { x: 0, y: 1 }, a: { x: -1, y: 0 }, d: { x: 1, y: 0 },
+                    W: { x: 0, y: -1 }, S: { x: 0, y: 1 }, A: { x: -1, y: 0 }, D: { x: 1, y: 0 },
+                };
+                if (map[e.key]) nextDir = map[e.key];
+            });
+
+            document.getElementById('restartBtn').addEventListener('click', restart);
+            document.getElementById('pauseBtn').addEventListener('click', () => setPaused(!paused));
+
+            // ====== Kickoff ======
+            init();
+            rafId = requestAnimationFrame(loop);
+        })();
+    </script>
+
+</body>
+
+</html>
