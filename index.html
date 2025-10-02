@@ -265,12 +265,12 @@
         </div>
 
         <div class="legend">
-            <span class="chip">🐍 Snake</span>
+           <!-- <span class="chip">🐍 Snake</span> -->
             <span class="chip">🐭 Mice (food)</span>
             <span class="chip">🦊/🦅 Predators</span>
-            <span class="chip">🪨 Rock (stationary)</span>
-            <span class="chip">⬛ Tar wall (stationary)</span>
-            <span class="chip">💧 Water (stationary)</span>
+            <span class="chip">🪨 Rock </span>
+            <span class="chip">⬛ Tar wall </span>
+            <span class="chip">💧 Water</span>
             <span class="chip">🌵 Cactus</span>
             <span class="chip">🌿 Thorn bush</span>
         </div>
@@ -1023,6 +1023,7 @@
             }
 
             // ====== Rendering ======
+            // ====== Rendering ======
             function draw() {
                 drawGridBG();
 
@@ -1039,8 +1040,8 @@
                     ctx.fillStyle = "#0c0c0c";
                     ctx.fillRect(t.x * CELL, t.y * CELL, CELL, CELL);
                     ctx.fillStyle = "#111"; // darker base
-                    ctx.fillRect(t.x * CELL + 1, t.y * CELL + 1, CELL - 2, CELL - 2);
-                    ctx.fillStyle = "#222";
+                    // ctx.fillRect(t.x * CELL + 1, t.y * CELL + 1, CELL - 2, CELL - 2);
+                    // ctx.fillStyle = "#222";
                     //   ctx.fillText("⬛", cellToPx(t.x), cellToPx(t.y));
                 }
                 for (const r of rocks) {
@@ -1053,30 +1054,30 @@
                 // Vegetation
                 ctx.fillStyle = "#2a382a";
                 for (const c of cactus) {
-                    ctx.fillRect(c.x * CELL, c.y * CELL, CELL, CELL);
-                    ctx.fillStyle = "#9cff9c";
+                    // ctx.fillRect(c.x * CELL, c.y * CELL, CELL, CELL);
+                    // ctx.fillStyle = "#9cff9c";
                     ctx.fillText("🌵", cellToPx(c.x), cellToPx(c.y));
                     ctx.fillStyle = "#2a382a";
                 }
                 for (const b of bushes) {
-                    ctx.fillRect(b.x * CELL, b.y * CELL, CELL, CELL);
-                    ctx.fillStyle = "#b6ffb6";
+                    // ctx.fillRect(b.x * CELL, b.y * CELL, CELL, CELL);
+                    // ctx.fillStyle = "#b6ffb6";
                     ctx.fillText("🌿", cellToPx(b.x), cellToPx(b.y));
                     ctx.fillStyle = "#2a382a";
                 }
 
                 // Mice
                 for (const m of mice) {
-                    ctx.fillStyle = "#1d1d1d";
-                    ctx.fillRect(m.x * CELL, m.y * CELL, CELL, CELL);
+                    // ctx.fillStyle = "#1d1d1d";
+                    // ctx.fillRect(m.x * CELL, m.y * CELL, CELL, CELL);
                     ctx.fillStyle = "#ddd";
                     ctx.fillText("🐭", cellToPx(m.x), cellToPx(m.y));
                 }
 
                 // Predators
                 for (const p of predators) {
-                    ctx.fillStyle = "#1a1210";
-                    ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
+                    // ctx.fillStyle = "#1a1210";
+                    // ctx.fillRect(p.x * CELL, p.y * CELL, CELL, CELL);
                     ctx.fillStyle = "#fff";
                     ctx.fillText(p.icon, cellToPx(p.x), cellToPx(p.y));
                 }
@@ -1084,12 +1085,12 @@
                 // Snake
                 for (let i = snake.length - 1; i >= 0; i--) {
                     const s = snake[i];
-                    const t = i === 0 ? "#39ff14" : i >= snake.length - 3 ? "#ff5151" : "#66ff66"; // head/tail coloring
+                    const t = i === 0 ? "#99ff14" : i >= snake.length - 3 ? "#ff5151" : "#66ff66"; // head/tail coloring
                     ctx.fillStyle = t;
                     ctx.fillRect(s.x * CELL + 2, s.y * CELL + 2, CELL - 4, CELL - 4);
                     if (i === 0) {
                         ctx.fillStyle = "#0c0c0c";
-                        ctx.fillText("🐍", cellToPx(s.x), cellToPx(s.y));
+                        // ctx.fillText("🐍", cellToPx(s.x), cellToPx(s.y));
                     }
                 }
             }
